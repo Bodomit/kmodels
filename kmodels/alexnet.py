@@ -125,8 +125,8 @@ def AlexNet(include_top=True, weights='imagenet',
     x = Conv2D(96, (11, 11), strides=(4, 4), use_bias=False, activation='relu', name='conv_1')(img_input)
     
     # 2nd Layer: Conv Pool -> Lrn -> Conv (w Relu)
-    x = MaxPooling2D(pool_size=(3,3), strides=(2,2))(x)
     x = lrn()(x)
+    x = MaxPooling2D(pool_size=(3,3), strides=(2,2))(x)
     x = ZeroPadding2D(padding=(2,2))(x)
     x = tf.split(x, num_or_size_splits=2, axis=2)
     x = [Conv2D(128, (5, 5), strides=(1, 1), activation='relu', name='conv_2_' + str(i + 1))(x[i])
@@ -134,8 +134,8 @@ def AlexNet(include_top=True, weights='imagenet',
     x = Concatenate(axis=2, name="conv_2")(x)
 
     # 3rd Layer: Pool -> Lrn -> Conv (w Relu)
-    x = MaxPooling2D(pool_size=(3,3), strides=(2,2))(x)
     x = lrn()(x)
+    x = MaxPooling2D(pool_size=(3,3), strides=(2,2))(x)
     x = ZeroPadding2D(padding=(1,1))(x)
     x = Conv2D(384, (3, 3), strides=(1, 1), use_bias=False, name='conv3')(x)
 
