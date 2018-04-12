@@ -1,5 +1,5 @@
 """ AlexNet Model for Keras.
-
+Partially based on https://github.com/heuritech/convnets-keras/blob/master/convnetskeras/convnets.py
 # Reference
 
 - [Imagenet classification with deep con- volutional neural networks] (dl.acm.org/citation.cfm?doid=3098997.3065386)
