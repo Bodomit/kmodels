@@ -178,7 +178,7 @@ def AlexNet(include_top=True, weights='imagenet',
         weights_path = get_file('alexnet_weights.h5',
                                 TF_WEIGHTS_PATH,
                                 cache_subdir='models',
-                                file_hash='727b307627dfcce86bf7446ebb1a75ec')
+                                file_hash='bd0dd1af3674d5b0b39fb627054789b8')
 
         model.load_weights(weights_path)
 
