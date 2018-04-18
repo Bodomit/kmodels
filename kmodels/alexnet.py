@@ -26,7 +26,7 @@ from keras.utils.data_utils import get_file
 
 import tensorflow as tf
 
-TF_WEIGHTS_PATH = 'https://www.dropbox.com/s/xdztqy55iof69ro/alexnet_weights.h5?dl=1'
+TF_WEIGHTS_PATH = 'https://www.dropbox.com/s/lvczhq0fw0497ft/alexnet_weights.h5?dl=1'
 
 def AlexNet(include_top=True, weights='imagenet',
              input_tensor=None, input_shape=None,
@@ -119,72 +119,68 @@ def AlexNet(include_top=True, weights='imagenet',
         inputs = img_input
 
     def lrn(name=None):
-        return Lambda(lambda x: tf.nn.local_response_normalization(x, depth_radius=11, alpha=2, beta=1e-05, bias=0.75, name=name))
+        return Lambda(lambda x: tf.nn.local_response_normalization(x, depth_radius=11, alpha=2, beta=1e-05, bias=0.75), name=name)
+
+    def split_conv2D(x, filters, kernel_size, strides=(1, 1), activation='relu', name=None):
+        x1 = Lambda(lambda x: tf.split(x, num_or_size_splits=2, axis=-1)[0])(x)
+        x2 = Lambda(lambda x: tf.split(x, num_or_size_splits=2, axis=-1)[1])(x)
+        x1 = Conv2D(filters, kernel_size, strides=strides, activation=activation, name=name+'_1')(x1)
+        x2 = Conv2D(filters, kernel_size, strides=strides, activation=activation, name=name+'_2')(x2)
+        return Concatenate(axis=-1, name=name)([x1, x2])
 
     # 1st Layer: Conv (w ReLu)
-    x = Conv2D(96, (11, 11), strides=(4, 4), use_bias=False, activation='relu', name='conv_1')(img_input)
+    x = Conv2D(96, (11, 11), strides=(4, 4), activation='relu', name='conv_1')(img_input)
     
     # 2nd Layer: Conv Pool -> Lrn -> Conv (w Relu)
     x = lrn()(x)
     x = MaxPooling2D(pool_size=(3,3), strides=(2,2))(x)
     x = ZeroPadding2D(padding=(2,2))(x)
-    x = tf.split(x, num_or_size_splits=2, axis=2)
-    x = [Conv2D(128, (5, 5), strides=(1, 1), activation='relu', name='conv_2_' + str(i + 1))(x[i])
-            for i in len(x)]
-    x = Concatenate(axis=2, name="conv_2")(x)
+    x = split_conv2D(x, 128, (5, 5), name='conv_2')
 
     # 3rd Layer: Pool -> Lrn -> Conv (w Relu)
     x = lrn()(x)
     x = MaxPooling2D(pool_size=(3,3), strides=(2,2))(x)
     x = ZeroPadding2D(padding=(1,1))(x)
-    x = Conv2D(384, (3, 3), strides=(1, 1), use_bias=False, name='conv3')(x)
+    x = Conv2D(384, (3, 3), strides=(1, 1), name='conv3')(x)
 
     # 4th Layer: Conv (w ReLu)
     x = ZeroPadding2D(padding=(1,1))(x)
-    x = tf.split(x, num_or_size_splits=2, axis=2)
-    x = [Conv2D(192, (3, 3), strides=(1, 1), activation='relu', name='conv_4_' + str(i + 1))(x[i])
-            for i in len(x)]
-    x = Concatenate(axis=2, name="conv_4")(x)
+    x = split_conv2D(x, 192, (3, 3), name='conv_4')
 
     # 5th Layer: Conv (w Relu)
     x = ZeroPadding2D(padding=(1,1))(x)
-    x = tf.split(x, num_or_size_splits=2, axis=2)
-    x = [Conv2D(128, (3, 3), strides=(1, 1), activation='relu', name='conv_5_' + str(i + 1))(x[i])
-            for i in len(x)]
-    x = Concatenate(axis=2, name="conv_5")(x)
+    x = split_conv2D(x, 128, (3, 3), name='conv_5')
 
-    # 5th Layer: Conv (w ReLu) -> Pool -> Flatten
-    x = Conv2D(256, (3, 3), strides=(1, 1), use_bias=False, name='conv5')(x)
+    # 6th Layer: Conv (w ReLu) -> Pool -> Flatten -> Dense
     x = MaxPooling2D(pool_size=(3, 3), strides=(2, 2))(x)
     x = Flatten()(x)
-
-    # 6th Layer: Dense
     x = Dense(4096, activation='relu', name='dense_1')(x)
     x = Dropout(0.5)(x)
 
-    # 7th Later: Dence
+    # 7th Later: Dense
     x = Dense(4096, activation='relu', name='dense_2')(x)
     x = Dropout(0.5)(x)
 
     # 8th Layer: Softmax
-    x = Dense(1000, name='dense_3')(x)
-    x = Dense(1000, activation='softmax')
+    x = Dense(1000, activation='softmax', name="output")(x)
 
     # Create model.
-    model = Model(inputs, x, name='alexnet')
+    model = Model(inputs=inputs, outputs=x, name='alexnet')
 
     # Load the weights.
     if weights == 'imagenet':
         weights_path = get_file('alexnet_weights.h5',
                                 TF_WEIGHTS_PATH,
                                 cache_subdir='models',
-                                file_hash='bd0dd1af3674d5b0b39fb627054789b8')
+                                file_hash='6b7ccd8989354b8b2f30f442dc0c6a9e')
 
         model.load_weights(weights_path)
 
     # Remove top if required.
     if not include_top:
-        model.layers.pop()
+        model.layers.pop() # Remove Softmax
+        model.layers.pop() # Remove Dropout
+        model.outputs = [model.layers[-1].output]
 
     # Restore old image format if it was different.
     if old_data_format:
