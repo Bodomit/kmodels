@@ -119,7 +119,7 @@ def AlexNet(include_top=True, weights='imagenet',
         inputs = img_input
 
     def lrn(name=None):
-        return Lambda(lambda x: tf.nn.local_response_normalization(x, depth_radius=11, alpha=2, beta=1e-05, bias=0.75), name=name)
+        return Lambda(lambda x: tf.nn.local_response_normalization(x), name=name)
 
     def split_conv2D(x, filters, kernel_size, strides=(1, 1), activation='relu', name=None):
         x1 = Lambda(lambda x: tf.split(x, num_or_size_splits=2, axis=-1)[0])(x)
@@ -179,7 +179,10 @@ def AlexNet(include_top=True, weights='imagenet',
     # Remove top if required.
     if not include_top:
         model.layers.pop() # Remove Softmax
-        model.layers.pop() # Remove Dropout
+        #model.layers.pop() # Remove Dropout
+        #model.layers.pop() # Remove Dense 2
+        #model.layers.pop() # Remove Dropout
+        #model.layers.pop() # Remove Dense 1
         model.outputs = [model.layers[-1].output]
 
     # Restore old image format if it was different.
