@@ -153,7 +153,7 @@ def AlexNet(include_top=True, weights='imagenet',
 
     # 6th Layer: Conv (w ReLu) -> Pool -> Flatten -> Dense
     x = MaxPooling2D(pool_size=(3, 3), strides=(2, 2))(x)
-    x = Flatten()(x)
+    x = Flatten(name='flatten')(x)
     x = Dense(4096, activation='relu', name='dense_1')(x)
     x = Dropout(0.5)(x)
 
@@ -179,11 +179,12 @@ def AlexNet(include_top=True, weights='imagenet',
     # Remove top if required.
     if not include_top:
         model.layers.pop() # Remove Softmax
-        #model.layers.pop() # Remove Dropout
-        #model.layers.pop() # Remove Dense 2
-        #model.layers.pop() # Remove Dropout
-        #model.layers.pop() # Remove Dense 1
+        model.layers.pop() # Remove Dropout
+        model.layers.pop() # Remove Dense 2
+        model.layers.pop() # Remove Dropout
+        model.layers.pop() # Remove Dense 1
         model.outputs = [model.layers[-1].output]
+        model.layers[-1].outbound_nodes = []
 
     # Restore old image format if it was different.
     if old_data_format:
