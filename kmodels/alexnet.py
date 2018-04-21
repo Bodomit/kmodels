@@ -118,8 +118,21 @@ def AlexNet(include_top=True, weights='imagenet',
     else:
         inputs = img_input
 
-    def lrn(name=None):
-        return Lambda(lambda x: tf.nn.local_response_normalization(x), name=name)
+    def ccn(alpha=1e-4, k=2, beta=0.75, n=5, **kwargs):
+        """Cross Channel Normalisation used in the original paper."""
+        def f(X):
+            _, _, _, ch = X.shape
+            half = n // 2
+            square = K.square(X)
+            extra_channels = K.spatial_2d_padding(K.permute_dimensions(square, (0, 2, 3, 1)), padding=((0, 0), (half, half)))
+            extra_channels = K.permute_dimensions(extra_channels, (0, 3, 1, 2))
+            scale = k
+            for i in range(n):
+                scale += alpha * extra_channels[:, :, :, i:i + ch.value]
+            scale = scale ** beta
+            return X / scale
+
+        return Lambda(f, output_shape=lambda input_shape: input_shape, **kwargs)
 
     def split_conv2D(x, filters, kernel_size, strides=(1, 1), activation='relu', name=None):
         x1 = Lambda(lambda x: tf.split(x, num_or_size_splits=2, axis=-1)[0])(x)
@@ -132,13 +145,13 @@ def AlexNet(include_top=True, weights='imagenet',
     x = Conv2D(96, (11, 11), strides=(4, 4), activation='relu', name='conv_1')(img_input)
     
     # 2nd Layer: Conv Pool -> Lrn -> Conv (w Relu)
-    x = lrn()(x)
+    x = ccn()(x)
     x = MaxPooling2D(pool_size=(3,3), strides=(2,2))(x)
     x = ZeroPadding2D(padding=(2,2))(x)
     x = split_conv2D(x, 128, (5, 5), name='conv_2')
 
     # 3rd Layer: Pool -> Lrn -> Conv (w Relu)
-    x = lrn()(x)
+    x = ccn()(x)
     x = MaxPooling2D(pool_size=(3,3), strides=(2,2))(x)
     x = ZeroPadding2D(padding=(1,1))(x)
     x = Conv2D(384, (3, 3), strides=(1, 1), name='conv3')(x)

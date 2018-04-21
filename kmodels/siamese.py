@@ -54,6 +54,13 @@ def _euclidean_output_shape(shapes):
     shape1, _ = shapes
     return (shape1[0], 1)
 
+# Other metrics.
+def accuracy(y_true, y_pred, threshold = 0.5):
+    '''Compute classification accuracy with a fixed threshold on distances.
+    '''
+    return K.mean(K.equal(y_true, K.cast(y_pred < threshold, y_true.dtype)))
+
+
 # Adhoc test script.
 if __name__ == '__main__':
     from alexnet import AlexNet
