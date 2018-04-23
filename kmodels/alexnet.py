@@ -175,7 +175,7 @@ def AlexNet(include_top=True, weights='imagenet',
     x = Dropout(0.5)(x)
 
     # 8th Layer: Softmax
-    x = Dense(1000, activation='softmax', name="output")(x)
+    x = Dense(classes, activation='softmax', name="output")(x)
 
     # Create model.
     model = Model(inputs=inputs, outputs=x, name='alexnet')
